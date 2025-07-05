@@ -9,6 +9,11 @@
 
 function doPost(e) {
   try {
+    // 檢查是否有 POST 資料
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('No POST data received');
+    }
+    
     // 解析 POST 請求的 JSON 資料
     const data = JSON.parse(e.postData.contents);
     
@@ -24,13 +29,19 @@ function doPost(e) {
     
     // 回傳成功訊息
     return ContentService
-      .createTextOutput(JSON.stringify({ status: 'success', message: 'Data saved' }))
+      .createTextOutput(JSON.stringify({ 
+        status: 'success', 
+        message: 'Data saved successfully' 
+      }))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
     console.error('Error:', error);
     return ContentService
-      .createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+      .createTextOutput(JSON.stringify({ 
+        status: 'error', 
+        message: error.toString() 
+      }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -38,12 +49,15 @@ function doPost(e) {
 function getOrCreateSheet() {
   const SHEET_NAME = 'LINE Bot 對話記錄';
   
-  // 嘗試開啟現有的試算表，如果不存在就建立新的
+  // 嘗試取得現有試算表，如果沒有就建立新的
   let spreadsheet;
-  try {
-    // 如果有特定的 Spreadsheet ID，可以在這裡指定
-    spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  } catch (e) {
+  
+  // 檢查是否有現有的試算表檔案
+  const files = DriveApp.getFilesByName(SHEET_NAME);
+  if (files.hasNext()) {
+    const file = files.next();
+    spreadsheet = SpreadsheetApp.openById(file.getId());
+  } else {
     // 建立新的試算表
     spreadsheet = SpreadsheetApp.create(SHEET_NAME);
   }
@@ -52,7 +66,10 @@ function getOrCreateSheet() {
   
   if (!sheet) {
     sheet = spreadsheet.insertSheet(SHEET_NAME);
-    // 設定標題列
+  }
+  
+  // 檢查是否需要設定標題列
+  if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, 3).setValues([['時間', '用戶ID', '對話內容']]);
     sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
   }
@@ -60,6 +77,24 @@ function getOrCreateSheet() {
   return sheet;
 }
 
-function doGet(e) {
+function doGet() {
   return ContentService.createTextOutput('LINE Bot Webhook is running!');
+}
+
+// 測試函數 - 可以在 GAS 編輯器中執行來測試
+function testWebhook() {
+  const testData = {
+    timestamp: '2024-01-01 12:00:00',
+    user_id: 'test_user',
+    conversation: '測試對話內容'
+  };
+  
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify(testData)
+    }
+  };
+  
+  const result = doPost(mockEvent);
+  console.log('Test result:', result.getContent());
 }
