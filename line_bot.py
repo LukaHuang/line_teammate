@@ -55,9 +55,9 @@ def handle_text_message(event):
         conversation_history = memo_storage.format_conversation(user_id)
         
         if conversation_history:
-            reply_text = f"📝 累積對話記錄：\n\n{conversation_history}\n\n💡 發送 /save 來儲存對話"
+            reply_text = f"{conversation_history}"
         else:
-            reply_text = f"訊息已記錄：{message_text}\n\n💡 發送 /save 來儲存對話"
+            reply_text = f"{message_text}"
     
     line_bot_api.reply_message(
         event.reply_token,
@@ -83,9 +83,9 @@ def handle_audio_message(event):
             conversation_history = memo_storage.format_conversation(user_id)
             
             if conversation_history:
-                reply_text = f"📝 累積對話記錄：\n\n{conversation_history}\n\n💡 發送 /save 來儲存對話"
+                reply_text = f"{conversation_history}"
             else:
-                reply_text = f"語音已轉為文字：{transcribed_text}\n\n💡 發送 /save 來儲存對話"
+                reply_text = f"{transcribed_text}"
         else:
             reply_text = "語音轉換失敗，請重新發送。"
             

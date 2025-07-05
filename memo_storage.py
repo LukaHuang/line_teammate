@@ -33,15 +33,7 @@ class MemoStorage:
         recent_messages = messages[-max_messages:] if len(messages) > max_messages else messages
         
         formatted = []
-        for i, msg in enumerate(recent_messages, 1):
-            timestamp = datetime.fromisoformat(msg['timestamp']).strftime('%H:%M:%S')
-            formatted.append(f"{i}. [{timestamp}] {msg['message']}")
+        for msg in recent_messages:
+            formatted.append(msg['message'])
         
-        result = "\n".join(formatted)
-        
-        # 如果有更多訊息，加上提示
-        if len(messages) > max_messages:
-            total_count = len(messages)
-            result = f"... (共 {total_count} 條訊息，顯示最近 {max_messages} 條)\n\n" + result
-        
-        return result
+        return "\n".join(formatted)
