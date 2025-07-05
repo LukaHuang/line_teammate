@@ -24,14 +24,24 @@ class MemoStorage:
         if user_id in self.conversations:
             del self.conversations[user_id]
     
-    def format_conversation(self, user_id: str) -> str:
+    def format_conversation(self, user_id: str, max_messages: int = 10) -> str:
         messages = self.get_conversation(user_id)
         if not messages:
             return ""
         
-        formatted = []
-        for msg in messages:
-            timestamp = datetime.fromisoformat(msg['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
-            formatted.append(f"[{timestamp}] {msg['message']}")
+        # 只顯示最近的 max_messages 條訊息
+        recent_messages = messages[-max_messages:] if len(messages) > max_messages else messages
         
-        return "\n".join(formatted)
+        formatted = []
+        for i, msg in enumerate(recent_messages, 1):
+            timestamp = datetime.fromisoformat(msg['timestamp']).strftime('%H:%M:%S')
+            formatted.append(f"{i}. [{timestamp}] {msg['message']}")
+        
+        result = "\n".join(formatted)
+        
+        # 如果有更多訊息，加上提示
+        if len(messages) > max_messages:
+            total_count = len(messages)
+            result = f"... (共 {total_count} 條訊息，顯示最近 {max_messages} 條)\n\n" + result
+        
+        return result
