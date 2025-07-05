@@ -21,12 +21,22 @@ class WhisperHandler:
                 if not api_key.startswith('sk-'):
                     print(f"Warning: API key format seems incorrect: {api_key[:20]}...")
                 
-                # 直接傳入 API key
-                self.client = openai.OpenAI(api_key=api_key.strip())
-                print(f"✅ OpenAI client initialized successfully with key: {api_key[:15]}...")
+                # 使用最新版本，但不傳入可能導致問題的參數
+                self.client = openai.OpenAI(
+                    api_key=api_key.strip(),
+                    timeout=60.0
+                )
+                print(f"✅ OpenAI client initialized successfully: {api_key[:15]}...")
             except Exception as e:
                 print(f"❌ Failed to initialize OpenAI client: {e}")
-                self.client = None
+                print(f"Error type: {type(e)}")
+                # 如果新版本失敗，嘗試最簡單的初始化
+                try:
+                    self.client = openai.OpenAI(api_key=api_key.strip())
+                    print("✅ OpenAI client initialized with minimal config")
+                except Exception as e2:
+                    print(f"❌ Minimal config also failed: {e2}")
+                    self.client = None
         else:
             print("❌ OpenAI API key not found or empty")
             print(f"env_key: {env_key}")
@@ -51,14 +61,16 @@ class WhisperHandler:
         
         try:
             with open(audio_file_path, 'rb') as audio_file:
+                # 使用最新版本的 API
                 transcript = self.client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file
                 )
+            print(f"✅ Audio transcribed successfully: {transcript.text[:50]}...")
             return transcript.text
         except Exception as e:
-            print(f"Error transcribing audio: {e}")
-            return None
+            print(f"❌ Error transcribing audio: {e}")
+            return f"語音轉換錯誤: {str(e)}"
         finally:
             if os.path.exists(audio_file_path):
                 os.unlink(audio_file_path)
