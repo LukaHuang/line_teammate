@@ -5,6 +5,7 @@ from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMess
 from memo_storage import MemoStorage
 from whisper_handler import WhisperHandler
 from simple_storage import SimpleStorage
+from google_sheets_handler import GoogleSheetsHandler
 from config import LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET
 
 app = Flask(__name__)
@@ -15,6 +16,7 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 memo_storage = MemoStorage()
 whisper_handler = WhisperHandler()
 storage_handler = SimpleStorage()
+sheets_handler = GoogleSheetsHandler()
 
 @app.route("/health", methods=['GET'])
 def health():
@@ -40,10 +42,16 @@ def handle_text_message(event):
     if message_text == '/save':
         conversation = memo_storage.format_conversation(user_id)
         if conversation:
-            success = storage_handler.save_conversation(user_id, conversation)
-            if success:
+            # 嘗試儲存到 Google Sheets，失敗則儲存到本地
+            sheets_success = sheets_handler.save_conversation(user_id, conversation)
+            local_success = storage_handler.save_conversation(user_id, conversation)
+            
+            if sheets_success or local_success:
                 memo_storage.clear_conversation(user_id)
-                reply_text = "對話已成功儲存！"
+                if sheets_success:
+                    reply_text = "對話已成功儲存到 Google Sheets！"
+                else:
+                    reply_text = "對話已儲存到本地檔案！"
             else:
                 reply_text = "儲存失敗，請稍後再試。"
         else:
