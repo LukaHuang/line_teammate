@@ -82,5 +82,12 @@ def handle_audio_message(event):
 
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    try:
+        port = int(os.environ.get('PORT', 5000))
+        print(f"Starting LINE Bot on port {port}")
+        app.run(debug=False, host='0.0.0.0', port=port)
+    except Exception as e:
+        print(f"Failed to start application: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)

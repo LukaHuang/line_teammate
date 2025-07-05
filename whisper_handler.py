@@ -7,8 +7,11 @@ import os
 class WhisperHandler:
     def __init__(self):
         if OPENAI_API_KEY:
-            openai.api_key = OPENAI_API_KEY
-            self.client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            try:
+                self.client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            except Exception as e:
+                print(f"Failed to initialize OpenAI client: {e}")
+                self.client = None
         else:
             self.client = None
     
