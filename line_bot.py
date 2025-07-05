@@ -5,9 +5,8 @@ from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMess
 from memo_storage import MemoStorage
 from whisper_handler import WhisperHandler
 from simple_storage import SimpleStorage
-from google_sheets_handler import GoogleSheetsHandler
 from webhook_handler import WebhookHandler
-from config import LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, GOOGLE_SHEETS_WEBHOOK_URL
+from config import LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET
 
 app = Flask(__name__)
 
@@ -17,7 +16,6 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 memo_storage = MemoStorage()
 whisper_handler = WhisperHandler()
 storage_handler = SimpleStorage()
-sheets_handler = GoogleSheetsHandler()
 webhook_handler = WebhookHandler()
 
 @app.route("/health", methods=['GET'])
@@ -44,19 +42,13 @@ def handle_text_message(event):
     if message_text == '/save':
         conversation = memo_storage.format_conversation(user_id)
         if conversation:
-            # 嘗試多種儲存方式：Webhook > Google Sheets API > 本地檔案
+            # 嘗試儲存到 Google Sheets (Webhook)，失敗則儲存到本地
             webhook_success = webhook_handler.save_conversation(user_id, conversation)
-            sheets_success = False
-            if not webhook_success:
-                sheets_success = sheets_handler.save_conversation(user_id, conversation)
-            
             local_success = storage_handler.save_conversation(user_id, conversation)
             
-            if webhook_success or sheets_success or local_success:
+            if webhook_success or local_success:
                 memo_storage.clear_conversation(user_id)
                 if webhook_success:
-                    reply_text = "對話已成功儲存到 Google Sheets！"
-                elif sheets_success:
                     reply_text = "對話已成功儲存到 Google Sheets！"
                 else:
                     reply_text = "對話已儲存到本地檔案！"

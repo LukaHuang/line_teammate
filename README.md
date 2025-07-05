@@ -47,9 +47,7 @@
 2. 取得 Channel Access Token 和 Channel Secret
 3. 設置 Webhook URL: `https://your-domain.com/callback`
 
-### Google Sheets 設置（兩種方式擇一）
-
-#### 方法 1: Google Apps Script Webhook（推薦，更簡單）
+### Google Sheets 設置
 1. 開啟 [Google Apps Script](https://script.google.com/)
 2. 建立新專案，貼上 `gas_webhook.js` 內容
 3. 部署為網頁應用程式：
@@ -58,17 +56,6 @@
 4. 複製 Webhook URL 並設定環境變數：
    ```
    GOOGLE_SHEETS_WEBHOOK_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
-   ```
-
-#### 方法 2: Google Sheets API（需要服務帳戶）
-1. 建立 Google Cloud 專案
-2. 啟用 Google Sheets API
-3. 建立服務帳戶並下載 JSON 金鑰檔案
-4. 在 Google Sheets 中分享試算表給服務帳戶
-5. 設定環境變數：
-   ```
-   GOOGLE_SHEETS_CREDENTIALS_JSON={"type":"service_account",...}
-   GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
    ```
 
 ### OpenAI 設置
