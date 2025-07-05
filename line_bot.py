@@ -16,6 +16,10 @@ memo_storage = MemoStorage()
 whisper_handler = WhisperHandler()
 storage_handler = SimpleStorage()
 
+@app.route("/health", methods=['GET'])
+def health():
+    return {"status": "ok", "message": "LINE Bot is running"}, 200
+
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
