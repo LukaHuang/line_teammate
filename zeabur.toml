@@ -1,5 +1,0 @@
-[build]
-buildCommand = "pip install --upgrade pip && pip install -r requirements.txt"
-
-[deploy]
-startCommand = "python line_bot.py"
