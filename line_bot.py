@@ -20,7 +20,17 @@ webhook_handler = GoogleSheetsWebhookHandler()
 
 @app.route("/health", methods=['GET'])
 def health():
-    return {"status": "ok", "message": "LINE Bot is running"}, 200
+    import os
+    openai_status = "✅ SET" if os.getenv('OPENAI_API_KEY') else "❌ NOT SET"
+    webhook_status = "✅ SET" if os.getenv('GOOGLE_SHEETS_WEBHOOK_URL') else "❌ NOT SET"
+    
+    return {
+        "status": "ok", 
+        "message": "LINE Bot is running",
+        "openai_key": openai_status,
+        "webhook_url": webhook_status,
+        "whisper_client": "✅ Available" if whisper_handler.client else "❌ Not Available"
+    }, 200
 
 @app.route("/callback", methods=['POST'])
 def callback():

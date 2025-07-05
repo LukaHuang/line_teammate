@@ -6,20 +6,31 @@ from config import OPENAI_API_KEY
 
 class WhisperHandler:
     def __init__(self):
-        # 直接從環境變數取得，確保正確讀取
-        api_key = os.getenv('OPENAI_API_KEY') or OPENAI_API_KEY
+        # 詳細檢查環境變數
+        env_key = os.getenv('OPENAI_API_KEY')
+        config_key = OPENAI_API_KEY
         
-        if api_key:
+        print(f"Environment OPENAI_API_KEY: {'SET' if env_key else 'NOT SET'}")
+        print(f"Config OPENAI_API_KEY: {'SET' if config_key else 'NOT SET'}")
+        
+        api_key = env_key or config_key
+        
+        if api_key and api_key.strip():
             try:
-                # 設定環境變數，讓 OpenAI 自動讀取
-                os.environ['OPENAI_API_KEY'] = api_key
-                self.client = openai.OpenAI()  # 不傳入參數，讓它自動讀取環境變數
-                print(f"OpenAI client initialized successfully with key: {api_key[:10]}...")
+                # 確保 API key 格式正確
+                if not api_key.startswith('sk-'):
+                    print(f"Warning: API key format seems incorrect: {api_key[:20]}...")
+                
+                # 直接傳入 API key
+                self.client = openai.OpenAI(api_key=api_key.strip())
+                print(f"✅ OpenAI client initialized successfully with key: {api_key[:15]}...")
             except Exception as e:
-                print(f"Failed to initialize OpenAI client: {e}")
+                print(f"❌ Failed to initialize OpenAI client: {e}")
                 self.client = None
         else:
-            print("OpenAI API key not found in environment variables")
+            print("❌ OpenAI API key not found or empty")
+            print(f"env_key: {env_key}")
+            print(f"config_key: {config_key}")
             self.client = None
     
     def download_audio(self, audio_url: str, access_token: str) -> str:
