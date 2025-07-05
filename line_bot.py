@@ -1,22 +1,22 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
+from linebot import LineBotApi, WebhookHandler as LineWebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage
 from memo_storage import MemoStorage
 from whisper_handler import WhisperHandler
 from simple_storage import SimpleStorage
-from webhook_handler import WebhookHandler
+from webhook_handler import WebhookHandler as GoogleSheetsWebhookHandler
 from config import LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET
 
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
+handler = LineWebhookHandler(LINE_CHANNEL_SECRET)
 
 memo_storage = MemoStorage()
 whisper_handler = WhisperHandler()
 storage_handler = SimpleStorage()
-webhook_handler = WebhookHandler()
+webhook_handler = GoogleSheetsWebhookHandler()
 
 @app.route("/health", methods=['GET'])
 def health():
