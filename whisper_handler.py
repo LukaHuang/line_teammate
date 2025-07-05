@@ -6,8 +6,11 @@ import os
 
 class WhisperHandler:
     def __init__(self):
-        openai.api_key = OPENAI_API_KEY
-        self.client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        if OPENAI_API_KEY:
+            openai.api_key = OPENAI_API_KEY
+            self.client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        else:
+            self.client = None
     
     def download_audio(self, audio_url: str, access_token: str) -> str:
         headers = {'Authorization': f'Bearer {access_token}'}
@@ -21,6 +24,10 @@ class WhisperHandler:
             raise Exception(f"Failed to download audio: {response.status_code}")
     
     def transcribe_audio(self, audio_file_path: str) -> str:
+        if not self.client:
+            print("OpenAI API key not configured, skipping audio transcription")
+            return "語音轉文字功能未設定 OpenAI API 金鑰"
+        
         try:
             with open(audio_file_path, 'rb') as audio_file:
                 transcript = self.client.audio.transcriptions.create(
