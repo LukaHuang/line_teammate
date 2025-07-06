@@ -1,14 +1,32 @@
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler as LineWebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage
+from linebot.models import MessageEvent, TextMessage, AudioMessage, ImageMessage, TextSendMessage
 from memo_storage import MemoStorage
 from whisper_handler import WhisperHandler
 from simple_storage import SimpleStorage
 from webhook_handler import WebhookHandler as GoogleSheetsWebhookHandler
 from config import LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET
+import re
 
 app = Flask(__name__)
+
+def is_url(text):
+    """檢查文字是否為 URL"""
+    url_pattern = re.compile(
+        r'^https?://'  # http:// 或 https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # 網域名稱
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # IP 位址
+        r'(?::\d+)?'  # 可選的 port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    # 也檢查常見的 URL 格式（沒有 http/https 前綴）
+    simple_url_pattern = re.compile(
+        r'^(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?(?:/\S*)?$'
+    )
+    
+    return bool(url_pattern.match(text.strip()) or simple_url_pattern.match(text.strip()))
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = LineWebhookHandler(LINE_CHANNEL_SECRET)
@@ -67,15 +85,26 @@ def handle_text_message(event):
         else:
             reply_text = "沒有對話可以儲存。"
     else:
-        memo_storage.add_message(user_id, message_text)
-        
-        # 取得累積的對話內容
-        conversation_history = memo_storage.format_conversation(user_id)
-        
-        if conversation_history:
-            reply_text = f"{conversation_history}"
+        # 檢查是否為連結
+        if is_url(message_text):
+            # 如果是連結，直接儲存到收藏連結工作表
+            link_success = webhook_handler.save_link(user_id, message_text)
+            
+            if link_success:
+                reply_text = "連結已成功收藏到 Google Sheets！"
+            else:
+                reply_text = "連結收藏失敗，請稍後再試。"
         else:
-            reply_text = f"{message_text}"
+            # 一般文字訊息，加入對話記錄
+            memo_storage.add_message(user_id, message_text)
+            
+            # 取得累積的對話內容
+            conversation_history = memo_storage.format_conversation(user_id)
+            
+            if conversation_history:
+                reply_text = f"{conversation_history}"
+            else:
+                reply_text = f"{message_text}"
     
     line_bot_api.reply_message(
         event.reply_token,
@@ -110,6 +139,33 @@ def handle_audio_message(event):
     except Exception as e:
         print(f"Error processing audio: {e}")
         reply_text = "處理語音時發生錯誤，請重新發送。"
+    
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply_text)
+    )
+
+@handler.add(MessageEvent, message=ImageMessage)
+def handle_image_message(event):
+    user_id = event.source.user_id
+    message_id = event.message.id
+    
+    try:
+        # 取得圖片 URL
+        message_content = line_bot_api.get_message_content(message_id)
+        image_url = f"https://api-data.line.me/v2/bot/message/{message_id}/content"
+        
+        # 儲存圖片連結到 Google Sheets
+        image_success = webhook_handler.save_image(user_id, image_url, message_id)
+        
+        if image_success:
+            reply_text = "圖片已成功上傳到 Google Sheets！"
+        else:
+            reply_text = "圖片上傳失敗，請稍後再試。"
+            
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        reply_text = "處理圖片時發生錯誤，請重新發送。"
     
     line_bot_api.reply_message(
         event.reply_token,

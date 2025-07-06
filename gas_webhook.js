@@ -17,21 +17,33 @@ function doPost(e) {
     // 解析 POST 請求的 JSON 資料
     const data = JSON.parse(e.postData.contents);
     
-    // 取得或建立 Google Sheets
-    const sheet = getOrCreateSheet();
-    
-    // 新增資料到試算表
     const timestamp = data.timestamp || new Date().toLocaleString('zh-TW');
     const userId = data.user_id || 'unknown';
-    const conversation = data.conversation || '';
     
-    sheet.appendRow([timestamp, userId, conversation]);
+    // 根據資料類型選擇不同的工作表
+    if (data.type === 'link') {
+      // 儲存連結到收藏連結工作表
+      const linkSheet = getOrCreateSheet('收藏連結');
+      linkSheet.appendRow([timestamp, userId, data.link]);
+      
+    } else if (data.type === 'image') {
+      // 儲存圖片到圖片工作表
+      const imageSheet = getOrCreateSheet('圖片收藏');
+      imageSheet.appendRow([timestamp, userId, data.image_url, data.message_id]);
+      
+    } else {
+      // 一般對話儲存到對話記錄工作表
+      const conversationSheet = getOrCreateSheet('LINE Bot 對話記錄');
+      const conversation = data.conversation || '';
+      conversationSheet.appendRow([timestamp, userId, conversation]);
+    }
     
     // 回傳成功訊息
     return ContentService
       .createTextOutput(JSON.stringify({ 
         status: 'success', 
-        message: 'Data saved successfully' 
+        message: 'Data saved successfully',
+        type: data.type || 'conversation'
       }))
       .setMimeType(ContentService.MimeType.JSON);
       
@@ -46,32 +58,38 @@ function doPost(e) {
   }
 }
 
-function getOrCreateSheet() {
-  const SHEET_NAME = 'LINE Bot 對話記錄';
+function getOrCreateSheet(sheetName = 'LINE Bot 對話記錄') {
+  const MAIN_SPREADSHEET_NAME = 'LINE Bot 資料收集';
   
   // 嘗試取得現有試算表，如果沒有就建立新的
   let spreadsheet;
   
   // 檢查是否有現有的試算表檔案
-  const files = DriveApp.getFilesByName(SHEET_NAME);
+  const files = DriveApp.getFilesByName(MAIN_SPREADSHEET_NAME);
   if (files.hasNext()) {
     const file = files.next();
     spreadsheet = SpreadsheetApp.openById(file.getId());
   } else {
     // 建立新的試算表
-    spreadsheet = SpreadsheetApp.create(SHEET_NAME);
+    spreadsheet = SpreadsheetApp.create(MAIN_SPREADSHEET_NAME);
   }
   
-  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+  let sheet = spreadsheet.getSheetByName(sheetName);
   
   if (!sheet) {
-    sheet = spreadsheet.insertSheet(SHEET_NAME);
+    sheet = spreadsheet.insertSheet(sheetName);
   }
   
-  // 檢查是否需要設定標題列
+  // 根據工作表類型設定不同的標題列
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 3).setValues([['時間', '用戶ID', '對話內容']]);
-    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    if (sheetName === '收藏連結') {
+      sheet.getRange(1, 1, 1, 3).setValues([['時間', '用戶ID', '連結']]);
+    } else if (sheetName === '圖片收藏') {
+      sheet.getRange(1, 1, 1, 4).setValues([['時間', '用戶ID', '圖片URL', '訊息ID']]);
+    } else {
+      sheet.getRange(1, 1, 1, 3).setValues([['時間', '用戶ID', '對話內容']]);
+    }
+    sheet.getRange(1, 1, 1, sheet.getLastColumn()).setFontWeight('bold');
   }
   
   return sheet;
